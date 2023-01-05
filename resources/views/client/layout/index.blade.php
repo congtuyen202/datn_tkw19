@@ -8,20 +8,45 @@
     <meta name="author" content="Themezhub" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <title>home</title>
+    @if (isset($title))
+        <title>{{ $title }}</title>
+    @endif
 
     <!-- Custom CSS -->
     <link href="{{ asset('assets/css/styles.css') }}" rel="stylesheet">
+    <link href="{{ asset('assets/css/detail-company.css') }}" rel="stylesheet">
     <script src="{{ asset('js/userApp.js') }}" defer></script>
     <!-- CSS only -->
     <!-- JavaScript Bundle with Popper -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.8/js/select2.min.js" defer></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi" crossorigin="anonymous">
+    <style>
+        .ic-1 {
+            width: 80px !important;
+            height: 80px !important;
+            margin-left: 36%;
+        }
 
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+        .reviews_wrap {
+            width: 100%;
+            height: 100%;
+            background-color: #f7fdfa !important;
+            margin-bottom: 20px;
+        }
 
+        .title-company {
+            text-align: center;
+        }
+
+        .number-job {
+            text-align: center;
+            font-size: 18px;
+        }
+    </style>
     <script>
+        
         window.Laravel = {!! json_encode(
             [
                 'csrfToken' => csrf_token(),
@@ -30,20 +55,13 @@
             JSON_UNESCAPED_UNICODE,
         ) !!};
     </script>
-    
+
 </head>
 <div class="preloader"></div>
 
-<!-- ============================================================== -->
-<!-- Main wrapper - style you can find in pages.scss -->
-<!-- ============================================================== -->
 <div id="main-wrapper">
-
-    <!-- ============================================================== -->
-    <!-- Top header  -->
-    <!-- ============================================================== -->
-    <!-- Start Navigation -->
     <div id="app">
+        @include('client.Tin-tuc.logn')
         @include('client.layout.header')
         <!-- End Navigation -->
         <div class="clearfix"></div>
@@ -61,16 +79,7 @@
 
     @include('client.layout.footer')
 
-
 </div>
-
-<!-- ============================================================== -->
-<!-- End Wrapper -->
-<!-- ============================================================== -->
-
-<!-- ============================================================== -->
-<!-- All Jquery -->
-<!-- ============================================================== -->
 <script src="{{ asset('assets/js/jquery.min.js') }}"></script>
 <script src="{{ asset('assets/js/popper.min.js') }}"></script>
 <script src="{{ asset('assets/js/bootstrap.min.js') }}"></script>
@@ -80,6 +89,3 @@
 <script src="{{ asset('assets/js/snackbar.min.js') }}"></script>
 <script src="{{ asset('assets/js/jQuery.style.switcher.js') }}"></script>
 <script src="{{ asset('assets/js/custom.js') }}"></script>
-<!-- ============================================================== -->
-<!-- This page plugins -->
-<!-- ============================================================== -->

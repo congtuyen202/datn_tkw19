@@ -152,6 +152,48 @@
                   <button type="submit" class="btn btn-success text-white">
                     Tải CV
                   </button>
+                  <div
+                    class="modal fade"
+                    id="exampleModal1"
+                    aria-labelledby="exampleModalLabel"
+                    aria-hidden="true"
+                  >
+                    <div class="modal-dialog modal-lg">
+                      <div class="modal-content">
+                        <div class="modal-header">
+                          <h5 class="modal-title" id="exampleModalLabel">
+                            Hãy điền thông tin cá nhân của bạn để nhà tuyển dụng
+                            chú ý đến bạn hơn
+                          </h5>
+                          <button
+                            type="button"
+                            class="close"
+                            data-dismiss="modal"
+                            aria-label="Close"
+                          >
+                            <span aria-hidden="true">x</span>
+                          </button>
+                        </div>
+                        <!-- profile cv -->
+                        <form class="p-4" method="POST" :action="data.urlStore">
+                          <input
+                            type="hidden"
+                            :value="csrfToken"
+                            name="_token"
+                          />
+                          <input
+                            type="hidden"
+                            :value="data.jobId"
+                            name="id_job"
+                          />
+
+                          <button type="submit" class="btn btn-primary">
+                            Submit
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <div class="float-left">
                   <ul class="cv-choosen justify-content-center border p-4">
@@ -201,6 +243,7 @@ import {
 import { localize } from '@vee-validate/i18n'
 import * as rules from '@vee-validate/rules'
 import $ from 'jquery'
+import { Notyf } from 'notyf'
 export default {
   setup() {
     Object.keys(rules).forEach((rule) => {
@@ -216,7 +259,8 @@ export default {
       url: Laravel.baseUrl,
       model: {},
       cv: this.data.cv,
-      cv_for_save: ''
+      cv_for_save: '',
+      visibleLiveDemo: false
     }
   },
   components: {
@@ -225,7 +269,7 @@ export default {
     ErrorMessage
   },
   mounted() {
-    console.log(this.cv.length)
+    console.log(this.data.seeker)
     // if (this.cv_for_save == '') {
     //   return [(this.cv_for_save = 'true')]
     // }
@@ -261,7 +305,25 @@ export default {
       }
     },
     onSubmit() {
-      this.$refs.formData.submit()
+      if (!this.data.seeker) {
+        const notyf = new Notyf({
+          duration: 6000,
+          position: {
+            x: 'right',
+            y: 'bottom'
+          },
+          types: [
+            {
+              type: 'error',
+              duration: 8000,
+              dismissible: true
+            }
+          ]
+        })
+        return notyf.error('Bạn cần hoàn thiện hồ sơ để có thể nộp được CV')
+      } else {
+        this.$refs.formData.submit()
+      }
     }
   }
 }

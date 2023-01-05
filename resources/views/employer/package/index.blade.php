@@ -50,7 +50,8 @@
                                             <td>{{ $item->lever_package }}</td>
                                             <td>{{ $item->start_time }}</td>
                                             <td>{{ $item->end_time }}</td>
-                                            <td><span
+                                            <td>
+                                                <span
                                                     class="badge {{ $item->status == 1 ? 'bg-success' : 'bg-secondary' }}">{{ $item->status_package }}</span>
                                             </td>
                                             <td>
@@ -64,12 +65,16 @@
                                                                 <i class="fa fa-eye"></i>xem chi tiết
                                                             </a>
                                                         </li>
-                                                        <li class="dropdown-divider"></li>
-                                                        <li>
-                                                            <a class="dropdown-item" href="" class="dropdown-item">
-                                                                <i class="fa fa-eye"></i>gia hạn
-                                                            </a>
-                                                        </li>
+                                                        @if ($item->status == 2)
+                                                            <li class="dropdown-divider"></li>
+                                                            <li>
+                                                                <btn-payment-extend-employer
+                                                                    :message-confirm="{{ json_encode('Bạn có chắc muốn gia hạn với mức giá ' . number_format($item->price) . 'đ' . ' không ?') }}"
+                                                                    :delete-action="{{ json_encode(route('employer.package.updateTimePayment', $item->id)) }}"
+                                                                    :price="{{ json_encode($item->price) }}">
+                                                                </btn-payment-extend-employer>
+                                                            </li>
+                                                        @endif
                                                     </ul>
                                                 </div>
                                             </td>
@@ -87,6 +92,7 @@
             </div>
         </div>
     </div>
+
     <!-- Modal by payment -->
     <account-payment
         :data="{{ json_encode([
@@ -94,6 +100,8 @@
             'data' => $data,
             'total' => $total,
             'accPayment' => $accPayment,
+            'packageAttractive' => $packageAttractive,
+            'checkPackage' => $checkPackage,
         ]) }}">
     </account-payment>
 @endsection

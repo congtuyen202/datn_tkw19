@@ -27,6 +27,7 @@ class PackageController extends BaseController
     }
     public function index()
     {
+      
         return view('admin.package.index', [
             'title' => 'Các gói ưu đãi',
             'package' => $this->package->select('*')->with('timeofer')->get(),

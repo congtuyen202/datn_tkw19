@@ -14,6 +14,10 @@
   border: solid 1px #f9b115;
 }
 
+.custom-date {
+  margin-right: 5px !important;
+}
+
 .custom-input {
   border-radius: 1px !important;
   border: 1px solid #ccc;
@@ -859,4 +863,11 @@ nav a {
 
 .btn-buy-package {
   margin: 0 auto !important;
+}
+
+.br-red {
+  margin-top: 5px;
+  margin-left: 5px;
+  border-radius: 5px;
+  background-color: rgb(162, 254, 179);
 }

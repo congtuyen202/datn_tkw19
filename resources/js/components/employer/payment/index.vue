@@ -6,7 +6,7 @@
     aria-labelledby="exampleModalLabel"
     aria-hidden="true"
   >
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="exampleModalLabel">
@@ -20,10 +20,13 @@
           ></button>
         </div>
         <div class="modal-body text-center">
+          <label for="" class="mb-5" style="font-size: 20px"
+            ><b>Gói Tin tuyển dụng, việc làm hấp dẫn</b></label
+          >
           <div class="row">
             <div
-              class="col-lg-3 col-6"
-              v-for="payment in data.data"
+              class="col-lg-4 col-6"
+              v-for="payment in data.packageAttractive"
               :key="payment.id"
             >
               <!-- small box -->
@@ -34,11 +37,11 @@
                       new Intl.NumberFormat('de-DE', {
                         style: 'currency',
                         currency: 'VND'
-                      }).format(payment.price)
+                      }).format(payment.price - checkPayment)
                     }}
                   </h3>
                   <p>{{ payment.name }}</p>
-                  <p>{{ payment.timeofer.name }}</p>
+                  <p>{{ payment.package }}</p>
                 </div>
                 <div class="icon">
                   <i class="ion ion-bag"></i>
@@ -117,7 +120,16 @@
               <input type="hidden" name="_token" :value="csrfToken" />
               <input type="hidden" name="name" :value="model.name" />
               <input type="hidden" name="id" :value="model.id" />
-              <input type="hidden" name="price" :value="model.price" />
+              <input
+                type="hidden"
+                name="price"
+                :value="model.price - checkPayment"
+              />
+              <input
+                type="hidden"
+                name="lerve_package"
+                :value="model.lever_package"
+              />
               <div class="box-seting-payment">
                 <div class="col-12">
                   <!-- small box -->
@@ -130,7 +142,7 @@
                           new Intl.NumberFormat('de-DE', {
                             style: 'currency',
                             currency: 'VND'
-                          }).format(model.price)
+                          }).format(model.price - checkPayment)
                         }}
                       </h3>
                       <p>{{ model.name }}</p>
@@ -192,10 +204,16 @@ export default {
       model: [],
       timePackage: [],
       total: '',
-      userPayment: ''
+      userPayment: '',
+      checkPayment: ''
     }
   },
   created() {
+    if (this.data.checkPackage) {
+      this.checkPayment = this.data.checkPackage.price
+    } else {
+      this.checkPayment = 0
+    }
     if (this.data.accPayment == null) {
       this.total = 0
     } else {
@@ -212,9 +230,9 @@ export default {
       axios
         .get('package/payment/show-detail/' + id)
         .then((data) => {
+          console.log(data)
           this.model = data.data.data
-          this.timePackage = this.model.timeofer.name
-          console.log(this.model.timeofer.name)
+          this.timePackage = data.data.data.package
         })
         .catch((error) => {
           console.log(error)
@@ -255,8 +273,6 @@ export default {
         })
         return notyf.error('Số dư trong tài khoản của bạn không đủ')
       } else {
-        console.log((this.data.total.surplus = this.model.price))
-
         axios
           .post('package/payment/buy-account', {
             _token: Laravel.csrfToken,

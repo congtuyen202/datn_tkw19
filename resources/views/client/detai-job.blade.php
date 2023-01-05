@@ -5,43 +5,51 @@
 @section('client')
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi" crossorigin="anonymous">
-    <div id="main-wrapper">
+    <div id="main-wrapper" style="background: #f0f2f5 !important;">
         <div class="clearfix"></div>
 
         <div class="py-5" style="background:#03343b url(assets/img/landing-bg.png) no-repeat;" data-overlay="0">
             <div class="container">
-                <div class="row justify-content-center">
-                    <div class="col-xl-8 col-lg-10 col-md-12 col-sm-12 col-12">
-                        <div class="banner_caption text-center mb-2">
-                            <h1 class="ft-bold mb-4">The Most Exciting Jobs</h1>
-                        </div>
-
-                        <form class="bg-white rounded p-1">
-                            <div class="row no-gutters">
-                                <div class="col-xl-5 col-lg-5 col-md-5 col-sm-12 col-12">
-                                    <div class="form-group mb-0 position-relative">
-                                        <input type="text" class="form-control lg left-ico"
-                                            placeholder="Job Title, Keyword or Company" />
-                                        <i class="bnc-ico lni lni-search-alt"></i>
-                                    </div>
-                                </div>
-                                <div class="col-xl-5 col-lg-4 col-md-4 col-sm-12 col-12">
-                                    <div class="form-group mb-0 position-relative">
-                                        <input type="text" class="form-control lg left-ico"
-                                            placeholder="Location or Zip Code" />
-                                        <i class="bnc-ico lni lni-target"></i>
-                                    </div>
-                                </div>
-                                <div class="col-xl-2 col-lg-3 col-md-3 col-sm-12 col-12">
-                                    <div class="form-group mb-0 position-relative">
-                                        <button class="btn full-width custom-height-lg theme-bg text-white fs-md"
-                                            type="button">Find Job</button>
-                                    </div>
-                                </div>
+                <div class="col-lg-12">
+                    <form id="search-form" action="{{ route('home.search') }}" name="gs" method="submit"
+                        role="search">
+                        <div class="row">
+                            <div class="col-lg-3 align-self-center">
+                                <fieldset>
+                                    <input type="address" name="key" class="searchText" placeholder="Tìm Kiêm..."
+                                        autocomplete="on">
+                                </fieldset>
                             </div>
-                        </form>
-
-                    </div>
+                            <div class="col-lg-3 align-self-center">
+                                <fieldset>
+                                    <select class="form-select" name="majors">
+                                        <option selected disabled>Chuyên Ngành</option>
+                                        @foreach ($majors as $item)
+                                            <option value="{{ $item->id }}">
+                                                {{ $item->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </fieldset>
+                            </div>
+                            <div class="col-lg-3 align-self-center">
+                                <fieldset>
+                                    <select class="form-select" name="location">
+                                        <option selected disabled>Địa chỉ</option>
+                                        @foreach ($locationAll as $item)
+                                            <option value="{{ $item->id }}">
+                                                {{ $item->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </fieldset>
+                            </div>
+                            <div class="col-lg-3">
+                                <fieldset>
+                                    <button class="main-button"><i class="fa fa-search"></i> Tìm Kiếm</button>
+                                </fieldset>
+                            </div>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -84,9 +92,9 @@
                         <div class="bg-white rounded px-3 py-4 mb-4">
                             <div class="jbd-01 d-flex align-items-center justify-content-between">
                                 <div class="jbd-flex d-flex align-items-center justify-content-start">
-                                    <div class="jbd-01-thumb">
-                                        <img src="{{ asset($job->logo) }}" class="img-fluid" width="90"
-                                            alt="" />
+                                    <div class="jbd-01-thumb" style="overflow: hidden; width: 150px; height: 150px;">
+                                        <img src="{{ asset($job->logo) }}" class="img-fluid"
+                                            style="width: 150px; height: 150px;" alt="" />
                                     </div>
                                     <div class="jbd-01-caption pl-3">
                                         <div class="tbd-title">
@@ -155,7 +163,7 @@
                                             <div class="mb-2 mr-4 ml-lg-0 mr-lg-4">
                                                 <div class="d-flex align-items-center">
                                                     <h6 class="mb-0 ml-3 text-muted fs-sm">
-                                                        {!! $job->candidate_requirements !!}</h6>
+                                                        {!! $job->benefit !!}</h6>
                                                 </div>
                                             </div>
                                         </div>
@@ -234,8 +242,8 @@
         <!-- ============================ Job Details End ================================== -->
 
         <!-- ======================= Related Jobs ======================== -->
-        <section class="space min container-company-detai">
-            <div class="container container-detai">
+        <section class="space min container-company-detai mb-3">
+            <div class="container container-detai pt-3 pb-2">
                 <div class="box-title">
                     <h2 class="box-name"><span style="margin-left: 5px !important">{{ $jobCompany[0]->name }}</span></h2>
                     <a href="https://www.topcv.vn/cong-ty/cong-ty-cp-duoc-pham-tin-phong/48787.html" target="_blank"
@@ -248,25 +256,9 @@
                         <div>
                             <p class="title">Giới thiệu</p>
                             <span class="content">
-                                <p>Công ty Cổ phần Dược phẩm Tín Phong được thành lập ngày 09/09/2013 bởi đội ngũ giàu kinh
-                                    nghiệm trong nghiên cứu và phân phối các sản phẩm thuốc uy tín cho thị trường Việt Nam.
-                                    Với tầm nhìn dài hạn và quan điểm phát triển bền vững, TÍN PHONG tập trung gây dựng và
-                                    kiến tạo hình ảnh một thương hiệu dược phẩm uy tín, lựa chọn tin cậy của mọi nhà. Bằng
-                                    khát vọng vươn lên cùng chiến lược đầu tư – phát triển sáng tạo, TÍN PHONG phấn đấu trở
-                                    thành công ty dược phẩm uy tín hàng đầu trong việc kinh doanh, phân phối sản phẩm dược
-                                    và thực phẩm bảo vệ sức khỏe.
+                                <p>{!! $jobCompany[0]->desceibe !!}
                                 </p>
-                                <p>TÍN PHONG mong muốn tạo nên một thương hiệu uy tín cho cộng đồng, trở thành niềm tin khi
-                                    lựa chọn các sản phẩm chất lượng của người tiêu dùng, vì một cuộc sống khoẻ mạnh và phát
-                                    triển toàn diện.
-                                </p>
-                                <p>TÍN PHONG tin rằng, niềm tin của khách hàng chính là thước đo cho thành công của doanh
-                                    nghiệp. TÍN PHONG nỗ lực hết mình vì sự tín nhiệm của cộng đồng.
-                                </p>
-                                <p>Với triết lý kinh doanh đó, TÍN PHONG xây dựng những giá trị cốt lõi làm tôn chỉ xuyên
-                                    suốt mọi hoạt động của công ty, cũng là lời hứa danh dự của người làm thuốc:
-                                </p>
-                                <p>TÍN - TÂM - NHÂN - ĐỨC</p>
+
                                 <p>
                                 </p>
                                 <p>
@@ -283,14 +275,14 @@
                         <div class="dro_141 de"><i class="fa fa-user-shield"></i></div>
                         <div>
                             <p class="title" style="margin-bottom: 0">Quy mô</p>
-                            <span class="content">100-499 nhân viên</span>
+                            <span class="content">{{ $jobCompany[0]->number_tax }}</span>
                         </div>
                     </div>
                     <div class="box-item">
                         <div class="dro_141 de"><i class="fa fa-map-marker"></i></div>
                         <div>
                             <p class="title" style="margin-bottom: 0">Địa điểm</p>
-                            <span class="content">Lô B10/D6, KĐT Cầu Giấy, Dịch Vọng, Cầu Giấy, Hà Nội</span>
+                            <span class="content">{{ $jobCompany[0]->address }}</span>
                         </div>
                     </div>
                     <div class="box-job-company">
@@ -347,188 +339,6 @@
                 </div>
             </div>
         </section>
-        <section class="space min container-relate">
-            <div class="row">
-                <div class="col-8">
-                    <div class="box-title">
-                        <h2 class="box-name"><span style="margin-left: 5px !important">Việc làm liên quan</span></h2>
-                    </div>
-                    @foreach ($rules as $item)
-                        <div class="job_grid d-block border rounded px-3 pt-3 pb-2">
-                            <div class="jb-list01-flex d-flex align-items-start justify-content-start">
-                                <div class="jb-list01-thumb">
-                                    <img src="{{ asset($item->logo) }}" class="img-fluid circle" width="90"
-                                        alt="">
-                                </div>
-
-                                <div class="jb-list01 pl-3">
-                                    <div class="jb-list-01-title">
-                                        <h5 class="ft-medium mb-1"><a
-                                                href="{{ route('home.detail.show', [$item->title, $item->id]) }}">{{ $item->title }}<img
-                                                    src="assets/img/verify.svg" class="ml-1" width="12"
-                                                    alt=""></a></h5>
-                                    </div>
-                                    <div class="jb-list-01-info d-block mb-3">
-                                        <span class="text-muted mr-2"><i
-                                                class="lni lni-map-marker mr-1"></i>{{ $item->getlocation->name }}</span>
-                                        <span class="text-muted mr-2"><i
-                                                class="lni lni-tag mr-1"></i>{{ $item->getprofession->name }}</span>
-                                        <span class="text-muted mr-2"><i
-                                                class="lni lni-briefcase mr-1"></i>{{ $item->getTime_work->name }}</span>
-                                        <span class="text-muted mr-2"><i
-                                                class="lni lni-graduation mr-1"></i>{{ $item->getExperience->name }}</span>
-                                    </div>
-                                    <div class="jb-list-01-title d-inline">
-                                        @foreach ($item->getskill as $item)
-                                            <span
-                                                class="mr-2 mb-2 d-inline-flex px-2 py-1 rounded theme-cl theme-bg-light">{{ $item->name }}</span>
-                                        @endforeach
-
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-                <div class="col-4">
-                    <div class="bg-white rounded mb-4 box-text-search">
-                        <div class="sidebar_header d-flex align-items-center justify-content-between px-4 py-3 br-bottom">
-                            <h4 class="ft-medium fs-lg mb-0">Search Filter</h4>
-                            <div class="ssh-header">
-                                <a href="#search_open" data-toggle="collapse" aria-expanded="false" role="button"
-                                    class="collapsed _filter-ico ml-2"><i class="lni lni-text-align-right"></i></a>
-                            </div>
-                        </div>
-
-                        <!-- Find New Property -->
-                        <div class="sidebar-widgets collapse miz_show" id="search_open" data-parent="#search_open">
-
-                            <div class="search-inner">
-
-                                <div class="filter-search-box px-4 pt-3 pb-0">
-                                    <div class="form-group">
-                                        <input type="text" class="form-control" placeholder="Search by keywords...">
-                                    </div>
-                                    <div class="form-group">
-                                        <input type="text" class="form-control" placeholder="Location, Zip..">
-                                    </div>
-                                </div>
-
-                                <div class="filter_wraps">
-
-                                    <!-- Job categories Search -->
-                                    <div class="single_search_boxed px-4 pt-0 br-bottom">
-                                        <div class="widget-boxed-header">
-                                            <h4>
-                                                <a href="#categories" class="ft-medium fs-md pb-0" data-toggle="collapse"
-                                                    aria-expanded="true" role="button">Job
-                                                    Categories</a>
-                                            </h4>
-
-                                        </div>
-                                        <div class="widget-boxed-body collapse show" id="categories"
-                                            data-parent="#categories">
-                                            <div class="side-list no-border">
-                                                <!-- Single Filter Card -->
-                                                <div class="single_filter_card">
-                                                    <div class="card-body p-0">
-                                                        <div class="inner_widget_link">
-                                                            <ul class="no-ul-list filter-list">
-                                                                <li>
-                                                                    <input id="a1" class="checkbox-custom"
-                                                                        name="ADA" type="checkbox" checked="">
-                                                                    <label for="a1" class="checkbox-custom-label">IT
-                                                                        Computers (62)</label>
-                                                                    <ul class="no-ul-list filter-list">
-                                                                        <li>
-                                                                            <input id="aa1" class="checkbox-custom"
-                                                                                name="ADA" type="checkbox">
-                                                                            <label for="aa1"
-                                                                                class="checkbox-custom-label">Web
-                                                                                Design
-                                                                                (31)</label>
-                                                                        </li>
-                                                                        <li>
-                                                                            <input id="aa2" class="checkbox-custom"
-                                                                                name="Parking" type="checkbox">
-                                                                            <label for="aa2"
-                                                                                class="checkbox-custom-label">Web
-                                                                                development
-                                                                                (20)</label>
-                                                                        </li>
-                                                                        <li>
-                                                                            <input id="aa3" class="checkbox-custom"
-                                                                                name="Coffee" type="checkbox">
-                                                                            <label for="aa3"
-                                                                                class="checkbox-custom-label">SEO
-                                                                                Services
-                                                                                (43)</label>
-                                                                        </li>
-                                                                    </ul>
-                                                                </li>
-
-
-                                                            </ul>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                </div>
-
-                                <div class="form-group filter_button pt-2 pb-4 px-4">
-                                    <button type="submit" class="btn btn-md theme-bg text-light rounded full-width">22
-                                        Results Show</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-        </section>
-        <!-- ======================= Related Jobs ======================== -->
-
-        <!-- ======================= Newsletter Start ============================ -->
-        <section class="space bg-cover" style="background:#03343b url(assets/img/landing-bg.png) no-repeat;">
-            <div class="container py-5">
-
-                <div class="row justify-content-center">
-                    <div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
-                        <div class="sec_title position-relative text-center mb-5">
-                            <h6 class="text-light mb-0">Subscribr Now</h6>
-                            <h2 class="ft-bold text-light">Get All New Job Notification</h2>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row align-items-center justify-content-center">
-                    <div class="col-xl-7 col-lg-10 col-md-12 col-sm-12 col-12">
-                        <form class="bg-white rounded p-1">
-                            <div class="row no-gutters">
-                                <div class="col-xl-9 col-lg-9 col-md-8 col-sm-8 col-8">
-                                    <div class="form-group mb-0 position-relative">
-                                        <input type="text" class="form-control lg left-ico"
-                                            placeholder="Enter Your Email Address">
-                                        <i class="bnc-ico lni lni-envelope"></i>
-                                    </div>
-                                </div>
-                                <div class="col-xl-3 col-lg-3 col-md-4 col-sm-4 col-4">
-                                    <div class="form-group mb-0 position-relative">
-                                        <button class="btn full-width custom-height-lg theme-bg text-light fs-md"
-                                            type="button">Subscribe</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
-            </div>
-        </section>
-
         <!-- Log In Modal -->
         <div class="modal fade" id="exampleModallogin" tabindex="-1" role="dialog"
             aria-labelledby="exampleModalLabel" aria-hidden="true">
@@ -572,6 +382,8 @@
                             'urlStore' => route('home.detail.upcv'),
                             'urlStoreCv' => route('quan-ly-cv.create'),
                             'jobId' => $job->id,
+                            'checkUser' => $profileUser,
+                            'seeker' => $seeker,
                         ]) }}">
                     </up-cv>
                 </div>

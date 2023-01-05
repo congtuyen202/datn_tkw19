@@ -13,16 +13,11 @@
                                 <div class="container-fluid">
                                     <label class=" px-md-0 me-md-3">Quản Lý Đăng Tin</label>
                                     <ul class="header-nav ms-3 d-flex">
-                                        <form action="{{ route('employer.new.index') }}" class="d-flex" method="get">
-                                            <input name="free_word" class="custom-input" placeholder="Tìm Kiếm...."
-                                                value="" autocomplete="off" id="free_word">
-                                            <button class="nav-link py-0 btn-next-step"
-                                                href="{{ route('employer.new.create') }}">
-                                                <i class="fa fa-search"></i>
-                                            </button>
-                                        </form>
-
-                                        @if ($checkCompany->id_company)
+                                        <search-cv-date :url="{{ json_encode(route('employer.new.index')) }}"
+                                            :data-query="{{ json_encode(!empty($request) ? $request->all() : new stdClass()) }}"
+                                            :data="{{ json_encode(1) }}">
+                                        </search-cv-date>
+                                        @if ($checkCompany->id_company && $checkCompanyStatus == 1)
                                             <a class="nav-link py-0 btn-next-step"
                                                 href="{{ route('employer.new.create') }}">
                                                 Thêm tin
@@ -43,14 +38,12 @@
                                 <table class="table table-striped table-hover table-bordered text-center">
                                     <thead>
                                         <tr>
-                                            {{-- <th scope="col">Logo</th> --}}
                                             <th scope="col">Tiêu Đề</th>
                                             <th scope="col">Vị trí làm việc</th>
                                             <th scope="col"> Hình thức làm việc</th>
                                             <th scope="col"> Trạng Thái</th>
                                             <th scope="col">Số lượng hồ sơ đã nhân</th>
                                             <th scope="col"> Thời gian bắt đầu</th>
-                                            <th scope="col">Kết thúc</th>
                                             <th scope="col">Thời gian còn lại</th>
                                             <th scope="col">Action</th>
                                         </tr>
@@ -63,17 +56,19 @@
                                                 <td>{{ $item->title }}</td>
                                                 <td>{{ $item->getprofession->name }}</td>
                                                 <td>{{ $item->getwk_form->name }}</td>
-                                                <td>{{ $item->status == 0 ? 'INACTIVE' : 'ACTIVE' }}</td>
+                                                {{-- <td>{{ $item->status == 0 ? 'INACTIVE' : 'ACTIVE' }}</td> --}}
+                                                <td>
+                                                    <change-status-new :data="{{ json_encode($item->status) }}"
+                                                        :route="{{ json_encode(route('employer.new.changeStus', $item->id)) }}">
+                                                    </change-status-new>
+                                                </td>
                                                 <td>{{ count($item->AllCv) }}</td>
                                                 <td>{{ $item->job_time }}</td>
-                                                <td>{{ Carbon::parse($item->end_job_time)->format('Y-m-d') }}</td>
                                                 <td>
-
                                                     @if (Carbon::parse($item->end_job_time)->format('m') == $m)
                                                         <h5>
                                                             @if (Carbon::parse($item->end_job_time)->format('d') - Carbon::parse(Carbon::now())->format('d') <= 0)
-                                                                {{-- {{ route('employer.changestatus', $item->id) }} --}}
-                                                                Hết hạn
+                                                                <span class="badge bg-secondary">Hết hạn</span>
                                                             @else
                                                                 {{ Carbon::parse($item->end_job_time)->format('d') - Carbon::parse(Carbon::now())->format('d') }}
                                                                 ngày
@@ -84,7 +79,7 @@
                                                                 ($mon - ($mon - Carbon::parse($item->end_job_time)->format('d'))) <=
                                                                 0)
                                                                 <h5>
-                                                                    {{ route('employer.changestatus', $item->id) }}
+                                                                    <span class="badge bg-secondary">Hết hạn</span>
                                                                 @else
                                                                     <h5>
                                                                         {{ $all_day -
@@ -109,9 +104,10 @@
                                                             </li>
                                                             <li class="dropdown-divider"></li>
                                                             <li>
-                                                                <a class="dropdown-item" href=""
+                                                                <a class="dropdown-item"
+                                                                    href="{{ route('employer.new.showdetai', $item->id) }}"
                                                                     class="dropdown-item">
-                                                                    <i class="fa fa-eye"></i>gia hạn
+                                                                    <i class="fa fa-eye"></i>Tất cả hồ sơ đã nhận
                                                                 </a>
                                                             </li>
                                                         </ul>
@@ -144,37 +140,13 @@
                     <br>
                     <p style="text-align: center ">Tài khoản của bạn chưa cập nhật thông tin công ty.
                     </p>
-                    <p style="text-align: center "> Để sử dụng tính năng này vui lòng cập nhật thông tin của bạn.</p>
+                    <p style="text-align: center "> Để sử dụng tính năng này vui lòng cập nhật thông tin của bạn. và xác
+                        thực để có thể đăng tin</p>
                 </div>
-                <button type="button" data-coreui-toggle="modal" data-coreui-target="#checkCompany"
-                    class="btn btn-primary " style="margin-left: 36%; width: 140px; margin-top: 20px">Cập nhật ngay
-                </button>
+                <a href="{{ route('employer.profile.index') }}" class="btn btn-primary "
+                    style="margin-left: 36%; width: 140px; margin-top: 20px">Cập nhật ngay
+                </a>
             </div>
         </div>
     </div>
-    <!-- Modal check company -->
-    <div class="modal fade" id="checkCompany" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="exampleModalLabel"
-                        style="margin-left: 38%; font-size: 24px; font-weight: 400">Đăng tin tuyển dụng</h5>
-                    <button type="button" class="btn-close" data-coreui-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-
-                    <create-company
-                        :data="{{ json_encode([
-                            'urlStore' => route('employer.register-company.store'),
-                        ]) }}">
-                    </create-company>
-                </div>
-
-            </div>
-        </div>
-    </div>
-
-    <style>
-
-    </style>
 @endsection

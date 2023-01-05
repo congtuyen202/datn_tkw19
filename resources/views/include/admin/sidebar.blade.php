@@ -21,12 +21,25 @@
                         CV
                     </a>
                 </li>
+                <li>
+                    <a href="{{ route('employer.tim-kiem-cv.index') }}">
+                        <i class="fa fa-address-card" aria-hidden="true"></i>Tìm Kiếm CV
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ route('employer.cv-da-mua.index') }}">
+                        <i class="fa fa-address-card" aria-hidden="true"></i>CV Đã Mua
+                    </a>
+                </li>
             </ul>
             <ul data-submenu-title="Tài khoản">
                 <li><a href="{{ route('employer.profile.index') }}"><i class="fa fa-user-circle"
                             aria-hidden="true"></i>My Profile </a>
                 </li>
-                <li><a href=""><i class="fa fa-cogs" aria-hidden="true"></i>Đổi mật khẩu</a></li>
+                <li><a href="/employer/pay-money"><i class="fa fa-user-circle"
+                            aria-hidden="true"></i>Nạp tiền</a>
+                </li>
+                <li><a href="/employer/change-password"><i class="fa fa-cogs" aria-hidden="true"></i>Đổi mật khẩu</a></li>
                 </li>
                 <li><a href="{{ route('employer.logout') }}"><svg xmlns="http://www.w3.org/2000/svg" width="16"
                             height="16" fill="currentColor" class="bi bi-box-arrow-in-left" viewBox="0 0 16 16">

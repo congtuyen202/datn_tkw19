@@ -281,7 +281,8 @@
                   </div>
                   <div class="form-group row">
                     <label for="" class="col-sm-4 col-form-label"
-                      >Vị trí công tác<span class="required-lable">*</span>:</label
+                      >Vị trí công tác<span class="required-lable">*</span
+                      >:</label
                     >
                     <div class="col-sm-8">
                       <Field
@@ -299,7 +300,8 @@
                   </div>
                   <div class="form-group row">
                     <label for="" class="col-sm-4 col-form-label"
-                      >Địa điểm cụ thể<span class="required-lable">*</span>:</label
+                      >Địa điểm cụ thể<span class="required-lable">*</span
+                      >:</label
                     >
                     <div class="col-sm-8">
                       <Field
@@ -318,7 +320,8 @@
                   <br />
                   <div class="form-group row">
                     <label for="" class="col-sm-4 col-form-label"
-                      >Địa điểm làm việc<span class="required-lable">*</span>:</label
+                      >Địa điểm làm việc<span class="required-lable">*</span
+                      >:</label
                     >
                     <div class="col-sm-8">
                       <Field
@@ -372,7 +375,7 @@
                         >
                           &nbsp;Điều khoản dịch vụ&nbsp;
                         </a>
-                        của TopCV.
+                        của ITWORK.
                       </label>
                     </div>
                   </div>
@@ -381,15 +384,8 @@
                     class="text-center mb-0 mt-4 action-container"
                   >
                     <button
-                      data-v-9281c350=""
-                      type="button"
-                      class="btn min-width btn btn-secondary btn-lg mr-3"
-                    >
-                      Hủy
-                    </button>
-                    <button
                       type="submit"
-                      class="btn min-width btn btn-primary btn-lg"
+                      class="main-button btn border btn-all"
                     >
                       Hoàn tất
                     </button>
@@ -505,7 +501,7 @@ export default {
 }
 </script>
 
-<style>
+<style scoped>
 body {
   font-family: 'Karla', sans-serif;
   background-color: #f1f2f6;
@@ -526,7 +522,7 @@ body {
 }
 .register-header-box .overlay {
   position: absolute;
-  background: #4ca853;
+  background: #747474;
   width: 100%;
   height: 100%;
   left: 0;

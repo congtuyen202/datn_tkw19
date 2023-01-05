@@ -2,13 +2,16 @@
 
 namespace App\Http\Controllers\Employer;
 
+use App\Enums\LeverPackageCompany;
 use App\Enums\StatusCode;
 use App\Http\Controllers\BaseController;
 use App\Http\Controllers\Controller;
 use App\Models\AccountPayment;
 use App\Models\Employer;
+use App\Models\jobAttractive;
 use App\Models\Packageoffer;
 use App\Models\packageofferbought;
+use App\Models\PaymentHistoryEmployer;
 use App\Models\Vnpay;
 use Carbon\Carbon;
 use Exception;
@@ -33,19 +36,27 @@ class PackageController extends BaseController
     }
     public function index()
     {
-        $pachageForEmployer = Packageofferbought::leftjoin('admin_package_offer', 'admin_package_offer.id', '=', 'package_offer_bought.package_offer_id')
+        $pachageForEmployer = Packageofferbought::leftjoin('job_attractive', 'job_attractive.id', '=', 'package_offer_bought.package_offer_id')
             ->leftjoin('users', 'users.id', '=', 'package_offer_bought.company_id')
             ->leftjoin('employer', 'employer.user_id', '=', 'users.id')
-            ->select('admin_package_offer.name as name_package', 'admin_package_offer.price as price', 'package_offer_bought.id as id', 'package_offer_bought.package_offer_id as package_id', 'package_offer_bought.start_time as start_time', 'package_offer_bought.end_time as end_time', 'package_offer_bought.lever', 'package_offer_bought.status')
+            ->select('job_attractive.name as name_package', 'job_attractive.price as price', 'package_offer_bought.id as id', 'package_offer_bought.package_offer_id as package_id', 'package_offer_bought.start_time as start_time', 'package_offer_bought.end_time as end_time', 'package_offer_bought.lever', 'package_offer_bought.status')
             ->orderby('package_offer_bought.status', 'ASC')
             ->where('package_offer_bought.company_id', Auth::guard('user')->user()->id)
             ->get();
         $accPayment = AccountPayment::where('user_id', Auth::guard('user')->user()->id)->first();
-        $package = Packageoffer::select('*')->whereNotIn('id', $pachageForEmployer->pluck('package_id'))->with('timeofer')->get();
+        $package = jobAttractive::select('*')->whereNotIn('id', $pachageForEmployer->pluck('package_id'))->get();
+
+        $checkPackage = packageofferbought::where('company_id', Auth::guard('user')->user()->id)
+            ->leftjoin('job_attractive', 'job_attractive.id', 'package_offer_bought.package_offer_id')
+            ->select('job_attractive.price as price')
+            ->first();
+        $packageAttractive = jobAttractive::whereNotIn('id', $pachageForEmployer->pluck('package_id'))->where('price', '>', $checkPackage->price ?? '')->get();
         return view('employer.package.index', [
             'data' => $package,
+            'checkPackage' => $checkPackage,
             'accPayment' => $accPayment,
             'pachageForEmployer' => $pachageForEmployer,
+            'packageAttractive' => $packageAttractive,
             'total' => AccountPayment::where('user_id', Auth::guard('user')->user()->id)->with('user')->first(),
         ]);
     }
@@ -79,7 +90,7 @@ class PackageController extends BaseController
     public function showDetail($id)
     {
         return response()->json([
-            'data' => $this->package->where('id', $id)->with('timeofer')->first()
+            'data' => jobAttractive::where('id', $id)->first()
         ]);
     }
 
@@ -112,9 +123,53 @@ class PackageController extends BaseController
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id)
+    public function updateTimePayment($id, Request $request)
     {
-        //
+        try {
+            $account = AccountPayment::where('user_id', Auth::guard('user')->user()->id)->first();
+            if ($account) {
+                $account->surplus -=  $request['price'];
+                $account->save();
+                $payment = packageofferbought::where('id', $id)->first();
+                $payment->status = 1;
+                $payment->start_time = Carbon::parse(Carbon::now())->format('Y-m-d');
+                if ($payment->lever == LeverPackageCompany::VIP1) {
+                    $payment->end_time = Carbon::parse(Carbon::now())->addDay(1)->format('Y-m-d');
+                } else if ($payment->lever == LeverPackageCompany::VIP2) {
+                    $payment->end_time = Carbon::parse(Carbon::now())->addDay(7)->format('Y-m-d');
+                } else if ($payment->lever == LeverPackageCompany::VIP3) {
+                    $payment->end_time = Carbon::parse(Carbon::now())->addDay(30)->format('Y-m-d');
+                }
+                $payment->save();
+                //ls
+                $paymentHistory = new PaymentHistoryEmployer();
+                $paymentHistory->user_id = Auth::guard('user')->user()->id;
+                $paymentHistory->price = $request['price'];
+                $paymentHistory->desceibe = 'Gia hạn gói cước VIP ' . $payment->lever;
+                $paymentHistory->form = '';
+                $paymentHistory->save();
+                //
+                $employer = Employer::where('user_id', Auth::guard('user')->user()->id)->first();
+                $employer->prioritize = $payment->lever;
+                $employer->save();
+
+                return response()->json([
+                    'message' => 'Gia hạn thành công!',
+                    'status' => StatusCode::OK,
+                ], StatusCode::OK);
+            } else {
+                return response()->json([
+                    'message' => 'Tài khoản của bạn chưa đủ tiền',
+                    'status' => StatusCode::FORBIDDEN,
+                ]);
+            }
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Đã có lỗi xảy ra ',
+                'status' => StatusCode::FORBIDDEN,
+            ], StatusCode::INTERNAL_ERR);
+        }
     }
 
     public function Payment(Request $request)
@@ -123,8 +178,8 @@ class PackageController extends BaseController
         $vnp_Returnurl = route('employer.package.payment.return');
         $vnp_TmnCode = "S50PEHFY"; //Mã website tại VNPAY 
         $vnp_HashSecret = $this->vnp_HashSecret; //Chuỗi bí mật
-        $vnp_TxnRef = $request->id;
-        $vnp_OrderInfo = $request->name;
+        $vnp_TxnRef = rand(0000, 9999);
+        $vnp_OrderInfo = $request->name . ',' . $request->lerve_package . ',' . $request->id;
         $vnp_OrderType = 'billpayment';
         $vnp_Amount =  $request->price * 100;
         $vnp_Locale = 'vn';
@@ -237,7 +292,7 @@ class PackageController extends BaseController
                 header('Location:' . $url_ipn);
                 die;
             } else {
-                $this->setFlash(__('Giao dịch không thành công'), 'error');
+                $this->setFlash(__('Giao dịch bị hủy bỏ'), 'error');
             }
         } else {
             $this->setFlash(__('chu ky khong hop le'), 'error');
@@ -267,76 +322,94 @@ class PackageController extends BaseController
                 $i = 1;
             }
         }
-        // dd($request->all());
+        $lever_package = explode(',', $request->vnp_OrderInfo)[1]; // lever
         $secureHash = hash_hmac('sha512', $hashData, $this->vnp_HashSecret);
         $vnpTranId = $inputData['vnp_TransactionNo']; //Mã giao dịch tại VNPAY
         $vnp_BankCode = $inputData['vnp_BankCode']; //Ngân hàng thanh toán
         $vnp_Amount = $inputData['vnp_Amount'] / 100; // Số tiền thanh toán VNPAY phản hồi
         $Status = 0; // Là trạng thái thanh toán của giao dịch chưa có IPN lưu tại hệ thống của merchant chiều khởi tạo URL thanh toán.
         $orderId = $inputData['vnp_TxnRef'];
-        // try {
-        //Check Orderid    
-        //Kiểm tra checksum của dữ liệu
-        if ($secureHash == $vnp_SecureHash) {
+        try {
+            //Check Orderid    
+            //Kiểm tra checksum của dữ liệu
+            if ($secureHash == $vnp_SecureHash) {
+                $invoice = jobAttractive::where('id', $lever_package)->first();
+                $checkPackage = packageofferbought::where('company_id', Auth::guard('user')->user()->id)
+                    ->leftjoin('job_attractive', 'job_attractive.id', 'package_offer_bought.package_offer_id')
+                    ->select('job_attractive.price as price')
+                    ->first();
+                if ($invoice != NULL) {
+                    if ($invoice["price"] + $checkPackage->price ?? 0 == $vnp_Amount) //Kiểm tra số tiền thanh toán của giao dịch: giả sử số tiền kiểm tra là đúng. //$order["Amount"] == $vnp_Amount
+                    {
+                        if ($invoice["status"] == NULL && $invoice["status"] == 0) {
+                            if ($inputData['vnp_ResponseCode'] == '00' && $inputData['vnp_TransactionStatus'] == '00') {
+                                $Status = 1; // Trạng thái thanh toán thành công
+                            } else {
+                                $Status = 2; // Trạng thái thanh toán thất bại / lỗi
+                            }
+                            //
+                            $checkPackage = packageofferbought::where('company_id', Auth::guard('user')->user()->id)->first();
+                            if ($checkPackage) {
+                                $package = $checkPackage;
+                                if ($lever_package == LeverPackageCompany::VIP1) {
+                                    $package->end_time = Carbon::parse($package->end_time)->addDay(1)->format('Y-m-d');
+                                } else if ($lever_package == LeverPackageCompany::VIP2) {
+                                    $package->end_time = Carbon::parse($package->end_time)->addDay(7)->format('Y-m-d');
+                                } else if ($lever_package == LeverPackageCompany::VIP3) {
+                                    $package->end_time = Carbon::parse($package->end_time)->addDay(30)->format('Y-m-d');
+                                }
+                            } else {
+                                $package = new packageofferbought();
+                                if ($lever_package == LeverPackageCompany::VIP1) {
+                                    $package->end_time = Carbon::parse(Carbon::now())->addDay(1)->format('Y-m-d');
+                                } else if ($lever_package == LeverPackageCompany::VIP2) {
+                                    $package->end_time = Carbon::parse(Carbon::now())->addDay(7)->format('Y-m-d');
+                                } else if ($lever_package == LeverPackageCompany::VIP3) {
+                                    $package->end_time = Carbon::parse(Carbon::now())->addDay(30)->format('Y-m-d');
+                                }
+                            }
+                            $package->company_id = Auth::guard('user')->user()->id;
+                            $package->package_offer_id = $lever_package;
+                            $package->status = $Status;
+                            $package->start_time = Carbon::parse(Carbon::now());
 
-            $invoice = Packageoffer::where('id', $orderId)->first(); //$orderId
-            if ($invoice != NULL) {
-                if ($invoice["price"] == $vnp_Amount) //Kiểm tra số tiền thanh toán của giao dịch: giả sử số tiền kiểm tra là đúng. //$order["Amount"] == $vnp_Amount
-                {
-                    if ($invoice["status"] == NULL && $invoice["status"] == 0) {
-                        if ($inputData['vnp_ResponseCode'] == '00' && $inputData['vnp_TransactionStatus'] == '00') {
-                            $Status = 1; // Trạng thái thanh toán thành công
+                            $package->lever = $lever_package;
+                            $package->save();
+                            //
+                            $paymentHistory = new PaymentHistoryEmployer();
+                            $paymentHistory->user_id = Auth::guard('user')->user()->id;
+                            $paymentHistory->price = $vnp_Amount;
+                            $paymentHistory->desceibe = $checkPackage ? 'Nâng cấp' : 'Thanh toán mua ' . explode(',', $request->vnp_OrderInfo)[0] . 'gói VIP ' . $lever_package;
+                            $paymentHistory->form = '';
+                            $paymentHistory->save();
+
+                            //
+                            $employer = Employer::where('user_id', Auth::guard('user')->user()->id)->first();
+                            $employer->prioritize += $lever_package;
+                            $employer->position = 1;
+                            $employer->save();
+                            $returnData['RspCode'] = '00';
+                            $returnData['Message'] = 'Xác nhận thành công';
                         } else {
-                            $Status = 2; // Trạng thái thanh toán thất bại / lỗi
+                            $returnData['RspCode'] = '02';
+                            $returnData['Message'] = 'Đơn đặt hàng đã được xác nhận';
                         }
-                        $package = new packageofferbought();
-                        $employer = Employer::where('user_id', Auth::guard('user')->user()->id)->first();
-                        $package->company_id = Auth::guard('user')->user()->id;
-                        $package->package_offer_id = 1;
-                        $package->status = $Status;
-                        $package->start_time = Carbon::parse(Carbon::now());
-                        if ($orderId == 1) {
-                            $employer->prioritize += 1;
-                            $package->end_time = Carbon::parse(Carbon::now())->addDay(1)->format('Y-m-d');
-                            $package->lever = 1;
-                        } else if ($orderId == 2) {
-                            $employer->prioritize += 2;
-                            $package->end_time = Carbon::parse(Carbon::now())->addDay(7)->format('Y-m-d');
-                            $package->lever = 2;
-                        } else if ($orderId == 3) {
-                            $employer->prioritize += 3;
-                            $package->end_time = Carbon::parse(Carbon::now())->addDay(30)->format('Y-m-d');
-                            $package->lever = 3;
-                        } else if ($orderId == 4) {
-                            $employer->prioritize += 4;
-                            $package->end_time = Carbon::parse(Carbon::now())->addDay(365)->format('Y-m-d');
-                            $package->lever = 4;
-                        }
-                        $package->save();
-                        $employer->save();
-                        AccountPayment::create($request->all());
-                        $returnData['RspCode'] = '00';
-                        $returnData['Message'] = 'Xác nhận thành công';
                     } else {
-                        $returnData['RspCode'] = '02';
-                        $returnData['Message'] = 'Đơn đặt hàng đã được xác nhận';
+                        $returnData['RspCode'] = '04';
+                        $returnData['Message'] = 'Số tiền không hợp lệ';
                     }
                 } else {
-                    $returnData['RspCode'] = '04';
-                    $returnData['Message'] = 'Số tiền không hợp lệ';
+                    $returnData['RspCode'] = '01';
+                    $returnData['Message'] = 'Không tồn tại hóa đơn';
                 }
             } else {
-                $returnData['RspCode'] = '01';
-                $returnData['Message'] = 'Không tồn tại hóa đơn';
+                $returnData['RspCode'] = '97';
+                $returnData['Message'] = 'Chữ ký không hợp lệ';
             }
-        } else {
-            $returnData['RspCode'] = '97';
-            $returnData['Message'] = 'Chữ ký không hợp lệ';
+        } catch (Exception $e) {
+            $returnData['RspCode'] = '99';
+            $returnData['Message'] = 'Lỗi không xác định';
         }
-        // } catch (Exception $e) {
-        //     $returnData['RspCode'] = '99';
-        //     $returnData['Message'] = 'Lỗi không xác định';
-        // }
         if ($returnData['RspCode'] != 00) {
             $this->setFlash($returnData['Message'], 'error');
         } else {
@@ -346,37 +419,50 @@ class PackageController extends BaseController
     }
     public function byAccount(Request $request)
     {
-
         try {
+            //
             $employer = Employer::where('user_id', Auth::guard('user')->user()->id)->first();
-            $package = new packageofferbought();
-            $package->company_id = Auth::guard('user')->user()->id;
-            $package->package_offer_id = $request['data']['id'];
-            $package->status = 1;
-            $package->start_time =
-                Carbon::parse(Carbon::now());
-            if ($request['data']['timeofer']['id'] == 1) {
-                $employer->prioritize += 1;
-                $package->end_time = Carbon::parse(Carbon::now())->addDay(1)->format('Y-m-d');
-                $package->lever = 1;
-            } else if ($request['data']['timeofer']['id'] == 2) {
-                $employer->prioritize += 2;
-                $package->end_time = Carbon::parse(Carbon::now())->addDay(7)->format('Y-m-d');
-                $package->lever = 2;
-            } else if ($request['data']['timeofer']['id'] == 3) {
-                $employer->prioritize += 3;
-                $package->end_time = Carbon::parse(Carbon::now())->addDay(30)->format('Y-m-d');
-                $package->lever = 3;
-            } else if ($request['data']['timeofer']['id'] == 4) {
-                $employer->prioritize += 4;
-                $package->end_time = Carbon::parse(Carbon::now())->addDay(365)->format('Y-m-d');
-                $package->lever = 4;
-            }
-            $package->save();
+            $employer->prioritize += $request['data']['lever_package'];
+            $employer->position = 1;
             $employer->save();
+            //
+            $checkPackage = packageofferbought::where('company_id', Auth::guard('user')->user()->id)->first();
+            if ($checkPackage) {
+                $package = $checkPackage;
+                if ($request['data']['lever_package'] == LeverPackageCompany::VIP1) {
+                    $package->end_time = Carbon::parse($package->end_time)->addDay(1)->format('Y-m-d');
+                } else if ($request['data']['lever_package'] == LeverPackageCompany::VIP2) {
+                    $package->end_time = Carbon::parse($package->end_time)->addDay(7)->format('Y-m-d');
+                } else if ($request['data']['lever_package'] == LeverPackageCompany::VIP3) {
+                    $package->end_time = Carbon::parse($package->end_time)->addDay(30)->format('Y-m-d');
+                }
+            } else {
+                $package = new packageofferbought();
+                if ($request['data']['lever_package'] == LeverPackageCompany::VIP1) {
+                    $package->end_time = Carbon::parse(Carbon::now())->addDay(1)->format('Y-m-d');
+                } else if ($request['data']['lever_package'] == LeverPackageCompany::VIP2) {
+                    $package->end_time = Carbon::parse(Carbon::now())->addDay(7)->format('Y-m-d');
+                } else if ($request['data']['lever_package'] == LeverPackageCompany::VIP3) {
+                    $package->end_time = Carbon::parse(Carbon::now())->addDay(30)->format('Y-m-d');
+                }
+            }
+            $package->company_id = Auth::guard('user')->user()->id;
+            $package->package_offer_id = $request['data']['lever_package'];
+            $package->status = 1;
+            $package->lever = $request['data']['lever_package'];
+            $package->start_time = Carbon::parse(Carbon::now());
+            $package->save();
+            // total
             $account = AccountPayment::where('user_id', Auth::guard('user')->user()->id)->first();
             $account->surplus = $account->surplus - $request['data']['price'];
             $account->save();
+            //ls 
+            $paymentHistory = new PaymentHistoryEmployer();
+            $paymentHistory->user_id = Auth::guard('user')->user()->id;
+            $paymentHistory->price = $request['data']['price'];
+            $paymentHistory->desceibe = $checkPackage ? 'Nâng cấp' : 'Thanh toán mua ' . 'gói cước VIP ' . $request['data']['lever_package'];
+            $paymentHistory->form = '';
+            $paymentHistory->save();
             return response()->json([
                 'message' => 'Thanh toán đơn hàng thành công',
                 'status' => StatusCode::OK,
@@ -386,7 +472,7 @@ class PackageController extends BaseController
             return response()->json([
                 'message' => 'Có một lỗi không xác định đã xảy ra',
                 'message' =>  StatusCode::FORBIDDEN,
-            ], StatusCode::OK,);
+            ], StatusCode::OK);
         }
     }
 }

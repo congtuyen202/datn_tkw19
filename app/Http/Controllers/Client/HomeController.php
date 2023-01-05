@@ -15,6 +15,7 @@ use App\Models\location;
 use App\Models\Majors;
 use App\Models\News;
 use App\Models\Profession;
+use App\Models\ProfileUserCv;
 use App\Models\SaveCv;
 use App\Models\Skill;
 use App\Models\Timework;
@@ -132,8 +133,11 @@ class HomeController extends BaseController
                     ->get();
             }
         }
+        $majors = Majors::all();
+
         $new = News::all();
         return view('client.index', [
+            'majors' => $majors,
             'profestion' => $this->getprofession(),
             'lever' => $this->getlever(),
             'experience' => $this->getexperience(),
@@ -152,11 +156,23 @@ class HomeController extends BaseController
                 ->where([
                     ['job.status', 1],
                     ['job.expired', 0],
+                    ['employer.position', 1],
                 ])
                 ->select('job.*', 'company.logo as logo', 'company.id as idCompany', 'company.name as nameCompany')
                 ->orderBy('employer.prioritize', 'desc')
                 ->get(),
             'new' => $new,
+            'jobAttractive' => $this->job
+                ->join('employer', 'employer.id', '=', 'job.employer_id')
+                ->join('company', 'company.id', '=', 'employer.id_company')
+                ->where([
+                    ['job.status', 1],
+                    ['job.expired', 0],
+                    ['employer.position', 0],
+                ])
+                ->select('job.*', 'company.logo as logo', 'company.id as idCompany', 'company.name as nameCompany')
+                ->orderBy('employer.prioritize', 'desc')
+                ->get(),
             'jobForUser' => $jobForUser ?? ''
 
         ]);
@@ -195,6 +211,10 @@ class HomeController extends BaseController
      */
     public function showDetail($name, $id)
     {
+        if (Auth::guard('user')->check()) {
+            $seeker = $this->Jobseeker->where('user_role', Auth::guard('user')->user()->id)->first();
+        }
+
         $job = $this->job
             // ->with(['getWage', 'getlocation', 'getskill', 'getMajors'])
             ->join('employer', 'employer.id', '=', 'job.employer_id')
@@ -212,6 +232,7 @@ class HomeController extends BaseController
             ->join('employer', 'employer.id', '=', 'job.employer_id')
             ->join('company', 'company.id', '=', 'employer.id_company')
             ->whereIn('job.id', $data)
+            ->where('job.expired', 0)
             ->select('job.*', 'company.logo as logo')
             ->get();
         //
@@ -242,9 +263,8 @@ class HomeController extends BaseController
             ->paginate(4);
         if (Auth::guard('user')->check()) {
             $cv = $this->upload->where('user_id', Auth::guard('user')->user()->id)->get();
+            $profileUser = $this->user->where('id', Auth::guard('user')->user()->id)->with('getProfile')->first();
         }
-
-        // dd($cv);
         $breadcrumbs = [
             $job->title
         ];
@@ -254,9 +274,13 @@ class HomeController extends BaseController
             'title' => $title,
             'getMajors' => $getMajors,
             'location' => $location,
+            'locationAll' => $this->location->get(),
             'rules' => $relate,
             'breadcrumbs' => $breadcrumbs,
             'cv' => $cv ?? '',
+            'profileUser' => $profileUser ?? '',
+            'seeker' => $seeker ?? '',
+            'majors' => $this->majors->get(),
         ]);
     }
 
@@ -321,6 +345,11 @@ class HomeController extends BaseController
     }
     public function upCv(Request $request)
     {
+        $seeker = $this->Jobseeker->where('user_role', Auth::guard('user')->user()->id)->first();
+        if (!$seeker) {
+            $this->setFlash(__('Bạn cần hoàn thiện hồ sơ để có thể nộp được CV'), 'error');
+            return redirect()->back();
+        }
         $checkJob = $this->savecv->where([
             ['id_job', $request->id_job],
             ['user_id', Auth::guard('user')->user()->id]
@@ -343,6 +372,7 @@ class HomeController extends BaseController
                     //
                     $cvUpload = new $this->savecv();
                     $cvUpload->title = $request->title;
+                    $cvUpload->token = rand(00000, 99999);
                     $cvUpload->user_id = Auth::guard('user')->user()->id;
                     if ($request->hasFile('file_cv')) {
                         $cvUpload->file_cv = $request->file_cv->storeAs('images/cv', $request->file_cv->hashName());
@@ -368,6 +398,7 @@ class HomeController extends BaseController
             if ($cvSave) {
                 $cvUpload = new $this->savecv();
                 $cvUpload->title = $cvSave->title;
+                $cvUpload->token = rand(00000, 99999);
                 $cvUpload->user_id = $cvSave->user_id;
                 $cvUpload->file_cv = $cvSave->file_cv;
                 $cvUpload->id_job = $request->id_job;

@@ -6,10 +6,12 @@ use App\Enums\StatusCode;
 use App\Http\Controllers\BaseController;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\EmployerCreateRequest;
+use App\Models\Accuracy;
 use App\Models\Company;
 use App\Models\Employer;
 use App\Models\Experience;
 use App\Models\Job;
+use App\Models\Jobseeker;
 use App\Models\Jobskill;
 use App\Models\Lever;
 use App\Models\location;
@@ -46,8 +48,9 @@ class NewEmployerController extends BaseController
     public location $location;
     public WorkingForm $workingform;
     public User $user;
+    public Jobseeker $jobseeker;
 
-    public function __construct(User $user, Lever $lever, Experience $experience, Wage $wage, Skill $skill, Timework $timework, Profession $profession, Jobskill $jobskill, Job $job, Majors $majors, Employer $employer, Company $company, location $location, WorkingForm $workingform)
+    public function __construct(Jobseeker $jobseeker, User $user, Lever $lever, Experience $experience, Wage $wage, Skill $skill, Timework $timework, Profession $profession, Jobskill $jobskill, Job $job, Majors $majors, Employer $employer, Company $company, location $location, WorkingForm $workingform)
     {
         $this->lever = $lever;
         $this->experience = $experience;
@@ -63,8 +66,9 @@ class NewEmployerController extends BaseController
         $this->location = $location;
         $this->workingform = $workingform;
         $this->user = $user;
+        $this->jobseeker = $jobseeker;
     }
-    public function index()
+    public function index(Request $request)
     {
         $date = getdate();
         $m = $date['mon'];
@@ -72,15 +76,36 @@ class NewEmployerController extends BaseController
         $all_day = cal_days_in_month(CAL_GREGORIAN, $m, $y);
         $mon = Carbon::parse(new Carbon('last day of last month'))->format('d');
         $checkCompany = $this->employer->where('user_id', Auth::guard('user')->user()->id)->first();
+        $checkCompanyXt = Accuracy::where('user_id', Auth::guard('user')->user()->id)->first();
+        if ($checkCompanyXt) {
+            $checkCompanyStatus = 1;
+        } else {
+            $checkCompanyStatus = 0;
+        }
         $job = $this->job->where([
             ['job.employer_id', $checkCompany->id],
-            ['job.status', 1],
-        ])
-            ->with(['getLevel', 'getExperience', 'getWage', 'getprofession', 'getlocation', 'getMajors', 'getwk_form', 'getTime_work', 'getskill', 'AllCv'])
+        ])->where(function ($q) use ($request) {
+            if (!empty($request['start_date'])) {
+                $q->whereDate('job.job_time', '>=', $request['start_date']);
+            }
+            if (!empty($request['end_date'])) {
+                $q->whereDate('job.end_job_time', '<=', $request['end_date']);
+            }
+            if (!empty($request['expired'])) {
+                if ($request['expired'] == 1) {
+                    $q->where('job.expired', 0);
+                } else {
+                    $q->where('job.expired', 1);
+                }
+            }
+            if (!empty($request['free_word'])) {
+                $q->orWhere($this->escapeLikeSentence('job.title', $request['free_word']));
+            }
+        })->with(['getLevel', 'getExperience', 'getWage', 'getprofession', 'getlocation', 'getMajors', 'getwk_form', 'getTime_work', 'getskill', 'AllCv'])
             ->join('employer', 'employer.id', '=', 'job.employer_id')
             ->join('company', 'company.id', '=', 'employer.id_company')
             ->select('job.*', 'company.logo as logo')
-            // ->Orderby('created_at', 'DESC')
+            ->Orderby('job.expired', 'ASC')
             ->get();
         return view('employer.new.index', [
             'job' => $job,
@@ -89,6 +114,8 @@ class NewEmployerController extends BaseController
             'mon' => $mon,
             'title' => 'Tin Tuyển Dụng',
             'checkCompany' => $checkCompany,
+            'request' => $request,
+            'checkCompanyStatus' => $checkCompanyStatus,
         ]);
     }
 
@@ -100,6 +127,7 @@ class NewEmployerController extends BaseController
     public function create()
     {
         return view('employer.new.create', [
+            'title' => 'Đăng tin tuyển dụng',
             'lever' => $this->getlever(),
             'experience' => $this->getexperience(),
             'wage' => $this->getwage(),
@@ -149,7 +177,7 @@ class NewEmployerController extends BaseController
             $job->time_work_id = $request['data']['time_work_id'];
             $job->candidate_requirements = $request['data']['candidate_requirements'];
             $job->employer_id = $employer->id;
-            $job->status = 1;
+            $job->status = 0;
             $job->save();
             //create to jobskill
             foreach ($request['skill'] as $item) {
@@ -190,6 +218,7 @@ class NewEmployerController extends BaseController
     public function edit($id)
     {
         return view('employer.new.edit', [
+            'title' => 'Sửa tin tuyển dụng',
             'job' => $this->job->with('getskill')->where([
                 ['id', $id],
             ])->first(),
@@ -234,7 +263,6 @@ class NewEmployerController extends BaseController
             $job->end_job_time = $end_time;
             $job->time_work_id = $request['data']['time_work_id'];
             $job->candidate_requirements = $request['data']['candidate_requirements'];
-            $job->status = 1;
             $job->save();
             //create to jobskill
             $jobskill =  $this->jobskill->where('job_id', $id)->get();
@@ -281,5 +309,48 @@ class NewEmployerController extends BaseController
             $this->setFlash(__('Đã có một lỗi sảy ra'), 'error');
             return redirect()->back();
         }
+    }
+    public function changeStus(Request $request, $id)
+    {
+        try {
+            $job = $this->job->where('id', $id)->first();
+            $job->status = $request['data'];
+            $job->save();
+            return response()->json([
+                'message' => 'Cập nhật thành công',
+                'status' => StatusCode::OK
+            ], StatusCode::OK);
+        } catch (\Throwable $th) {
+            DB::rollback();
+            return response()->json([
+                'message' => 'Đã có một lỗi xảy ra',
+                'status' => StatusCode::FORBIDDEN,
+            ], StatusCode::FORBIDDEN);
+        }
+    }
+    public function detailNew($id, Request $request)
+    {
+        $cv = $this->jobseeker
+            ->join('save_cv', 'job-seeker.user_role', '=', 'save_cv.user_id')
+            ->join('job', 'job.id', '=', 'save_cv.id_job')
+            ->leftjoin('users', 'users.id', '=', 'job-seeker.user_role')
+            ->join('employer', 'employer.id', '=', 'job.employer_id')
+            ->leftjoin('majors', 'majors.id', '=', 'job.majors_id')
+            ->where('job.id', $id)
+            ->where(function ($q) use ($request) {
+                if (!empty($request['start_date'])) {
+                    $q->whereDate('save_cv.created_at', '>=', $request['start_date']);
+                }
+                if (!empty($request['end_date'])) {
+                    $q->whereDate('save_cv.created_at', '<=', $request['end_date']);
+                }
+                if (!empty($request['free_word'])) {
+                    $q->orWhere($this->escapeLikeSentence('users.name', $request['free_word']));
+                    $q->orWhere($this->escapeLikeSentence('majors.name', $request['free_word']));
+                }
+            })
+            ->select('users.name as user_name', 'save_cv.status as status', 'save_cv.id as cv_id', 'save_cv.file_cv as file_cv', 'save_cv.user_id as user_id', 'job-seeker.*', 'majors.name as majors_name', 'save_cv.created_at as create_at_sv', 'save_cv.token as token')
+            ->get();
+        return view('employer.new.detail', ['cv' => $cv, 'id' => $id, 'request' => $request]);
     }
 }
